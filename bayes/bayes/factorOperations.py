@@ -100,7 +100,61 @@ def joinFactors(factors):
                     "Input factors: \n" +
                     "\n".join(map(str, factors)))
 
+    # DD = Factor.variableDomainsDict(self)  
+    # print(factors)
 
+
+    unconditioned = set()
+    conditioned = set()
+    DD = Factor.variableDomainsDict(factors[0])
+
+    # print(factors)
+    for factor in factors:
+        # print(factor)
+
+        # cur_unconditioned = Factor.unconditionedVariables(factor)
+        # cur_conditioned = Factor.conditionedVariables(factor)
+
+        # Factor.getProbability(factor)
+        # for var in cur_unconditioned:
+        #     if var in conditioned:
+        #         conditioned.remove(var)
+        #         unconditioned.add(var)
+        #     else:
+        #         conditioned.add(var)
+        # for var in cur_conditioned:
+
+
+        # for var in cur_unconditioned:
+        #     unconditioned.add(var)
+        # for var in cur_conditioned:
+        #     conditioned.add(var)
+
+        # for var in unconditioned:
+        #     if var in unconditioned and var in conditioned:
+        #         conditioned.remove(var)
+
+        for var in factor.unconditionedVariables():
+            unconditioned.add(var)
+            if var in conditioned:
+                conditioned.remove(var)
+
+        for var in factor.conditionedVariables():
+            if var not in unconditioned:
+                conditioned.add(var)
+
+    newFactor = Factor(unconditioned, conditioned, DD)
+
+    for a in newFactor.getAllPossibleAssignmentDicts():
+        startingP = 1.0
+        for factor in factors:
+            startingP = startingP * factor.getProbability(a)
+
+        newFactor.setProbability(a, startingP)
+    
+
+
+    return newFactor
     "*** YOUR CODE HERE ***"
     util.raiseNotDefined()
 
