@@ -152,18 +152,11 @@ def fillYCPT(bayesNet, gameState):
     """
 
     yFactor = bn.Factor([Y_POS_VAR], [], bayesNet.variableDomainsDict())
-    "*** YOUR CODE HERE ***"
-
-    from layout import PROB_BOTH_TOP, PROB_BOTH_BOTTOM, PROB_ONLY_LEFT_TOP, PROB_ONLY_LEFT_BOTTOM
     yFactor.setProbability({Y_POS_VAR: BOTH_TOP_VAL}, PROB_BOTH_TOP)
-    yFactor.setProbability({Y_POS_VAR: BOTH_BOTTOM_VAL}, 1 - PROB_BOTH_BOTTOM)
+    yFactor.setProbability({Y_POS_VAR: BOTH_BOTTOM_VAL}, PROB_BOTH_BOTTOM)
     yFactor.setProbability({Y_POS_VAR: LEFT_TOP_VAL}, PROB_ONLY_LEFT_TOP)
-    yFactor.setProbability({Y_POS_VAR: LEFT_BOTTOM_VAL}, 1 - PROB_ONLY_LEFT_BOTTOM)
+    yFactor.setProbability({Y_POS_VAR: LEFT_BOTTOM_VAL}, PROB_ONLY_LEFT_BOTTOM)
     bayesNet.setCPT(Y_POS_VAR, yFactor)
-
-
-    # util.raiseNotDefined()
-    # bayesNet.setCPT(Y_POS_VAR, yFactor)
 
 def fillHouseCPT(bayesNet, gameState):
     foodHouseFactor = bn.Factor([FOOD_HOUSE_VAR], [X_POS_VAR, Y_POS_VAR], bayesNet.variableDomainsDict())
@@ -205,117 +198,53 @@ def fillObsCPT(bayesNet, gameState):
     Question 2b: Bayes net probabilities
 
     Fill the CPT that gives the probability of an observation in each square,
-    given the locations of the food and ghost houses. Refer to the project
-    description for what this probability table looks like. You can use
-    PROB_FOOD_RED and PROB_GHOST_RED from the top of the file.
-
-    You will need to create a new factor for *each* of 4*7 = 28 observation
-    variables. Don't forget to call bayesNet.setCPT for each factor you create.
-
-    The XXXPos variables at the beginning of this method contain the (x, y)
-    coordinates of each possible house location.
-
-    IMPORTANT:
-    Because of the particular choice of probabilities higher up in the Bayes
-    net, it will never be the case that the ghost house and the food house are
-    in the same place. However, the CPT for observations must still include a
-    vaild probability distribution for this case. To conform with the
-    autograder, use the *food house distribution* over colors when both the food
-    house and ghost house are assigned to the same cell.
+    given the locations of the food and ghost houses.
     """
+    from layout import PROB_FOOD_RED, PROB_GHOST_RED
+    bottomLeftPos, topLeftPos, bottomRightPos, topRightPos = gameState.getPossibleHouses()
+    housePosByVal = {BOTTOM_LEFT_VAL:bottomLeftPos, TOP_LEFT_VAL:topLeftPos, 
+            BOTTOM_RIGHT_VAL: bottomRightPos, TOP_RIGHT_VAL:topRightPos}
+    wallsByVal = {}
+    for houseVal, centerPos in housePosByVal.items():
+        wallsByVal[houseVal] = set(gameState.getHouseWalls(centerPos))
 
-    pos = gameState.getPossibleHouses()
-    DD = bayesNet.variableDomainsDict()
+    obsPositions = set()
+    for centerPos in gameState.getPossibleHouses():
+        for obsPos in gameState.getHouseWalls(centerPos):
+            obsPositions.add(obsPos)
+    for obsPos in obsPositions:
+        obsVar = OBS_VAR_TEMPLATE % obsPos
+        obsFactor = bn.Factor([obsVar], [FOOD_HOUSE_VAR, GHOST_HOUSE_VAR], 
+                bayesNet.variableDomainsDict())
+        for assignment in obsFactor.getAllPossibleAssignmentDicts():
+            foodVal = assignment[FOOD_HOUSE_VAR]
+            ghostVal = assignment[GHOST_HOUSE_VAR]
+            obs = assignment[obsVar]
+            adjFood = obsPos in wallsByVal[foodVal]
+            adjGhost = obsPos in wallsByVal[ghostVal]
 
-    "*** YOUR CODE HERE ***"
-
-    # obsFactor = bn.Factor([OBS_VAR_TEMPLATE], [FOOD_HOUSE_VAR, GHOST_HOUSE_VAR], bayesNet.variableDomainsDict())
-    for housePos in pos:
-        for obsPos in gameState.getHouseWalls(housePos):
-                obsVar = OBS_VAR_TEMPLATE % obsPos
-                obsVarFactor = bn.Factor([obsVar], [FOOD_HOUSE_VAR, GHOST_HOUSE_VAR], bayesNet.variableDomainsDict())
-                
-                for a in obsVarFactor.getAllPossibleAssignmentDicts():
-                    food = a[FOOD_HOUSE_VAR]
-                    ghost = a[GHOST_HOUSE_VAR]
-                    obs = a[obsVar]
-
-                    probRed = 0
-                    probBlue = 0
-                    probNone = 0
-
-                    if housePos != food and housePos != ghost:
-                        probNone = 1
-                    elif housePos == food and housePos != ghost:
-                        probRed = PROB_FOOD_RED
-                    elif housePos != food and housePos == ghost:
-                        probRed = PROB_GHOST_RED
+            if not adjFood and not adjGhost:
+                if obs == NO_OBS_VAL:
+                    prob = 1.0
+                else:
+                    prob = 0.0
+            else:
+                if obs == NO_OBS_VAL:
+                    prob = 0.0
+                else:
+                    if adjFood:
+                        redProb = PROB_FOOD_RED
                     else:
-                        probRed = PROB_FOOD_RED
-                    
-                    probBlue = 1 - probRed
+                        redProb = PROB_GHOST_RED
 
                     if obs == RED_OBS_VAL:
-                        prob = probRed
+                        prob = redProb
                     elif obs == BLUE_OBS_VAL:
-                        prob = probBlue
-                    elif obs == NO_OBS_VAL:
-                        prob = probNone
+                        prob = 1 - redProb
                     else:
-                        prob = 0
-
-                    obsVarFactor.setProbability(a, prob)
-
-
-
-                # print(DD[obsVar])
-
-                # for ghost in DD[GHOST_HOUSE_VAR]:
-                #     for food in DD[FOOD_HOUSE_VAR]:
-                #         for obs in DD[obsVar]:
-                            
-                #             isGhost = False
-                #             isFood = False
-                #             if ghost == housePos:
-                #                 isGhost = True
-                #             if food == housePos:
-                #                 isFood = True
-
-                #             probRed = 0
-                #             probBlue = 0
-                #             probNone = 0
-
-                #             if isGhost and isFood:
-                #                 probRed = PROB_FOOD_RED
-                #                 probBlue = 1 - probRed
-                #             elif not isGhost and isFood:
-                #                 probRed = PROB_FOOD_RED
-                #                 probBlue = 1 - probRed
-                #             elif isGhost and not isFood:
-                #                 probRed = PROB_GHOST_RED
-                #                 probBlue = 1 - probRed
-                #             elif not isGhost and not isFood:
-                #                 probNone = 1
-
-
-                #             # print(obs)
-
-                #             if obs == RED_OBS_VAL:
-                #                 p = probRed
-                #             elif obs == BLUE_OBS_VAL:
-                #                 p = probBlue
-                #             else:
-                #                 p = probNone
-
-                #             obsVarFactor.setProbability({obsVar: obs, GHOST_HOUSE_VAR: ghost, FOOD_HOUSE_VAR: food}, p)
-
-                # obsVarFactor.setProbability({obsVar: LEFT_BOTTOM_VAL}, 1 - PROB_ONLY_LEFT_BOTTOM)
-
-
-                bayesNet.setCPT(obsVar, obsVarFactor)
-
-
-    # util.raiseNotDefined()
+                        prob = 0.0
+            obsFactor.setProbability(assignment, prob)
+        bayesNet.setCPT(obsVar, obsFactor)
 
 def getMostLikelyFoodHousePosition(evidence, bayesNet, eliminationOrder):
     """
